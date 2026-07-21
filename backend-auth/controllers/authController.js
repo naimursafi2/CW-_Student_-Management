@@ -11,6 +11,7 @@ function formatUser(user) {
   return {
     id: user._id,
     name: user.name,
+    role: user.role,
     email: user.email,
     isEmailVerified: user.isEmailVerified,
     createdAt: user.createdAt,
@@ -31,10 +32,10 @@ const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    if (!name || !email || !password) {
+    if (!name || !email || !password || role) {
       return res.status(400).json({
         success: false,
-        message: "Name, email, and password are required.",
+        message: "Name,role, email, and password are required.",
       });
     }
 
@@ -58,6 +59,7 @@ const register = async (req, res) => {
 
     const user = await User.create({
       name,
+      role,
       email,
       password,
       emailVerificationToken: hashedToken,
