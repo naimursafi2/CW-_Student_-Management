@@ -14,6 +14,7 @@ function formatUser(user) {
     role: user.role,
     email: user.email,
     isEmailVerified: user.isEmailVerified,
+    isApproved:user.isApproved,
     createdAt: user.createdAt,
   };
 }
@@ -64,7 +65,8 @@ const register = async (req, res) => {
       password,
       emailVerificationToken: hashedToken,
       emailVerificationExpires: expires,
-    });
+      isApproved: role === "admin" ? true : false
+    },);
 
     const verificationUrl = getVerificationUrl(token);
 

@@ -9,6 +9,11 @@ const userSchema = new mongoose.Schema(
       trim: true,
       maxlength: [30, "Name cannot exceed 30 characters"],
     },
+    role:{
+      type:String,
+      default:"student",
+      required: [true, "role is required"],
+    },
     email: {
       type: String,
       required: [true, "Email is required"],
@@ -26,6 +31,10 @@ const userSchema = new mongoose.Schema(
     isEmailVerified: {
       type: Boolean,
       default: false,
+    },
+    isApproved:{
+      type:Boolean,
+      default:false,
     },
     emailVerificationToken: {
       type: String,
