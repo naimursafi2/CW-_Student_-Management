@@ -272,7 +272,7 @@ const getMe = async (req, res) => {
     success: true,
     data: { user: formatUser(req.user) },
   });
-};
+}; 
 
 const forgotPassword = async (req, res) => {
   try {
