@@ -20,8 +20,6 @@ const getAllUsers = async (req, res, next) => {
 const approvedUserRole = async(req,res)=>{
  try{
    const params = req.params.id;
-
-
   const updateRole = await User.findByIdAndUpdate(params, {
     isApproved: true,
 
@@ -35,8 +33,6 @@ return res.status(200).send({success: true, message: "role updated successfully"
 const deleteUser = async (req, res)=>{
   try{
    const params = req.params.id;
-
-
   const deleteUser = await User.findByIdAndDelete(params)
 return res.status(200).send({success: true, message: "user deleted successfully"})
  }catch(error){

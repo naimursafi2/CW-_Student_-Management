@@ -3,16 +3,29 @@ const express = require("express");
 const cors = require("cors");
 const dbConnection = require("./configuration/dbConnection.js");
 const { initEmailTransport } = require("./helpers/emailHelper");
+const {rateLimit} =require('express-rate-limit')
 const routes = require("./routes");
 const dns = require("dns");
 
 const app = express();
 const PORT = process.env.PORT || 8000;
 
+const limiter = rateLimit({
+	windowMs: 10 * 60 * 1000, // 15 minutes
+	limit: 2, 
+	standardHeaders: 'draft-8', 
+	ipv6Subnet: 56, 
+  skipSuccessfulRequests:true,
+  message: {error:"Too many request from this IP, please try again letter"}
+	
+})
+
 dns.setServers(["8.8.8.8", "8.8.4.4"]);
 app.use(cors());
 app.use(express.json());
+app.use(limiter)
 app.use(routes);
+
 
 app.get("/", function (req, res) {
   res.send("Auth API");
