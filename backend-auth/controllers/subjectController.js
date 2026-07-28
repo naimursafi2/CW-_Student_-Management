@@ -1,7 +1,8 @@
 const subject = require("../models/subject");
 
 const createSubject = async (req,res)=>{
- res.send("create subject hoise")
+ const {creatorId, name, code, credits, description} = req.body;
+ res.send("suject create hoise")
 
 };
 
