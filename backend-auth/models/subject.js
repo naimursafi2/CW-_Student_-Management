@@ -7,7 +7,7 @@ const subjectSchem = new mongoose.Schema(
       ref: "user",
       required: [true, "creator id is required"],
     },
-    name: {
+    subName: {
       type: String,
       required: [true, "Subject name is required"],
       trim: true,
@@ -15,10 +15,12 @@ const subjectSchem = new mongoose.Schema(
     },
     code: {
       type: String,
+       unque:true,
       required: [true, "Subject name is required"],
       trim: true,
       maxlength: [10, "subject code exceed 10 characters"],
     },
+   
     credits: {
       type: String,
       required: false,
