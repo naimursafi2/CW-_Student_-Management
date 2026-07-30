@@ -1,4 +1,4 @@
-const { ReturnDocument } = require("mongodb");
+
 const User = require("../models/User");
 
 function formatUser(user) {
@@ -18,10 +18,12 @@ function formatUser(user) {
 
 const getAllUsers = async (req, res, next) => {
   try {
-    const alluser = await User.find({ role: ["student", "teacher"] });
+ const allUser =  await User.find({
+      role: { $in: ["student", "teacher"] },
+    });
     return res
       .status(200)
-      .send({ success: true, message: "user get successfully", user: alluser });
+      .send({ success: true, message: "user get successfully", user: allUser });
   } catch (error) {
     return res.status(500).send({
       success: false,
@@ -31,49 +33,57 @@ const getAllUsers = async (req, res, next) => {
   }
 };
 
-const approvedUserRole = async (req, res) => {
+const approvedUser = async (req, res) => {
   try {
-    const params = req.params.id;
-    const updateRole = await User.findByIdAndUpdate(
-      params,
-      {
-        isApproved: true,
-      },
-      { ReturnDocument: "after" },
-    );
-    return res
-      .status(200)
-      .send({
-        success: true,
-        message: "role updated successfully",
-        data: { user: updateRole },
-      });
+    const { id } = req.params;
+    const user = await User.findById(id);
+    if (!user) {
+      return res
+        .status(404)
+        .send({ message: "user not found", success: false });
+    }
+    if (user.isApproved) {
+      return res
+        .status(400)
+        .send({ message: "user already approved", success: false });
+    }
+    user.isApproved = true;
+    await user.save();
+    return res.status(200).send({
+      success: true,
+      message: "role updated successfully",
+      data: { user: formatUser(user) },
+    });
   } catch (error) {
-    return res
-      .status(500)
-      .send({
-        success: false,
-        message: "role updated failed",
-        error: error.message,
-      });
+    return res.status(500).send({
+      success: false,
+      message: "role updated failed",
+      error: error.message,
+    });
   }
 };
 
 const deleteUser = async (req, res) => {
+  const params = req.params.id;
   try {
-    const params = req.params.id;
     const deleteUser = await User.findByIdAndDelete(params);
-    return res
-      .status(200)
-      .send({ success: true, message: "user deleted successfully" });
-  } catch (error) {
-    return res
-      .status(500)
-      .send({
+    if (!deleteUser) {
+      return res.status(404).send({
         success: false,
-        message: "user delet failed",
-        error: error.message,
+        message: "User not found",
       });
+    }
+
+    return res.status(200).send({
+      success: true,
+      message: "User deleted successfully",
+    });
+  } catch (error) {
+    return res.status(500).send({
+      success: false,
+      message: "user delet failed",
+      error: error.message,
+    });
   }
 };
 
@@ -88,9 +98,8 @@ const getPendingUsers = async (req, res) => {
       role: { $in: ["teacher", "student"] },
     };
 
-    const total = await user.countDocuments(filter);
-    const pendingUsers = await user
-      .find(filter)
+    const total = await User.countDocuments(filter);
+    const pendingUsers = await User.find(filter)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -108,20 +117,107 @@ const getPendingUsers = async (req, res) => {
           totalItems: total,
           itemPerPage: limit,
           hasnextPage: page < totalPages,
-          hasPrevPage: Page > 1,
+          hasPrevPage: page > 1,
         },
       },
     });
   } catch (error) {
     console.log(error);
-    res
-      .status(500)
-      .send({
-        success: false,
-        message: "Internal Server Error",
-        error: error.message,
-      });
+    res.status(500).send({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
   }
 };
 
-module.exports = { getAllUsers, approvedUserRole, deleteUser, getPendingUsers };
+const rejectUser = async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const user = await User.findById(userId);
+    if (!user)
+      return res
+        .status(404)
+        .send({ success: false, message: "user not found." });
+    if (user.role == "admin")
+      return res
+        .status(404)
+        .send({ success: false, message: "cannot reject admin users." });
+
+    await User.findByIdAndDelete(userId);
+    res.status(200).send({
+      success: true,
+      message: "user rejected and deleted successfully.",
+    });
+  } catch (error) {
+    res.status(500).send({ success: false, message: "Internal server errror" });
+  }
+};
+
+const getTeachers = async (req, res) => {
+  const { status } = req.query;
+  const filter = { role: "teacher" };
+  try {
+    if (status === "approved") {
+      filter.isApproved = true;
+    } else if (status === "pending") {
+      filter.isApproved = false;
+    }
+
+    const teacher = await User.find(filter).sort({ createdAt: -1 });
+
+    res.status(200).send({
+      success: true,
+      message: "Teacher retrieve successfully",
+      data: {
+        teacher: teacher.map(formatUser),
+        count: teacher.length,
+      },
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+const getStudents = async (req, res) => {
+  const { status } = req.query;
+  const filter = { role: "student" };
+  try {
+    if (status === "approved") {
+      filter.isApproved = true;
+    } else if (status === "pending") {
+      filter.isApproved = false;
+    }
+
+    const students = await User.find(filter).sort({ createdAt: -1 });
+
+    res.status(200).send({
+      success: true,
+      message: "Student retrieve successfully",
+      data: {
+        students: students.map(formatUser),
+        count: students.length,
+      },
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+module.exports = {
+  getAllUsers,
+  approvedUser,
+  deleteUser,
+  getPendingUsers,
+  rejectUser,
+  getTeachers,
+  getStudents,
+};
