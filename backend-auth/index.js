@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 8000;
 
 const limiter = rateLimit({
 	windowMs: 10 * 60 * 1000, // 15 minutes
-	limit: 2, 
+	limit: 20, 
 	standardHeaders: 'draft-8', 
 	ipv6Subnet: 56, 
   skipSuccessfulRequests:true,
