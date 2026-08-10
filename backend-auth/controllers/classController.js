@@ -10,6 +10,7 @@ function formatClass(cls) {
     description: cls.description,
     creatorId: cls.creatorId,
     subjects: cls.subjects || [],
+    students: cls.students || [],
     createdAt: cls.createdAt,
     updatedAt: cls.updatedAt,
   };
@@ -17,7 +18,7 @@ function formatClass(cls) {
 
 const createClass = async (req, res) => {
   try {
-    const { name, code, description, creatorId, subjects } = req.body;
+    const { name, code, description, creatorId, subjects, students } = req.body;
 
     if (!name || !code || !creatorId) {
       return res.status(400).json({
@@ -32,6 +33,7 @@ const createClass = async (req, res) => {
       description,
       creatorId,
       subjects: subjects || [],
+      students: students || [],
     });
 
     await newClass.save();

@@ -32,6 +32,13 @@ const classSchema = new mongoose.Schema(
         required: false,
       },
     ],
+    students: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user",
+        required: false,
+      },
+    ],
   },
   {
     timestamps: true,

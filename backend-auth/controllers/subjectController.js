@@ -1,5 +1,5 @@
 const subject = require("../models/subject");
-const mongoosePaginate = require('mongoose-paginate-v2')
+const mongoosePaginate = require("mongoose-paginate-v2");
 
 const createSubject = async (req, res) => {
   const { creatorId, subName, code, credits, description } = req.body;
@@ -35,18 +35,19 @@ const deleteSubject = async (req, res) => {
     const deletedSubject = await subject.findByIdAndDelete(id);
 
     if (!deletedSubject) {
-      return res.status(404).send({message: "Subject not found!"});
+      return res.status(404).send({ message: "Subject not found!" });
     }
 
     res.status(200).send({
-      message: "Subject deleted successfully!", data: deletedSubject,});
-
+      message: "Subject deleted successfully!",
+      data: deletedSubject,
+    });
   } catch (error) {
     console.log(error);
 
-    res.status(500).send({message: "Error deleting subject!"});
+    res.status(500).send({ message: "Error deleting subject!" });
   }
-};;
+};
 
 const updateSubject = async (req, res) => {
   try {
@@ -79,6 +80,39 @@ const updateSubject = async (req, res) => {
       message: "Error updating subject.",
       error: error.message,
     });
-  }}
+  }
+};
 
-module.exports = { createSubject, getSubject, deleteSubject,updateSubject };
+const subjectById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const subjectInfo = await subject.findById(id);
+    return res.status(400).send({
+      message: "subject id doesn't match",
+    });
+    return res
+      .status(200)
+      .send({
+        success: true,
+        message: "subject retrived successfully",
+        data: subjectById,
+      });
+  } catch (error) {
+    return res
+      .status(500)
+      .send({
+        success: false,
+        message: "subject retrived failde",
+        error: error.message,
+      });
+    return;
+  }
+};
+
+module.exports = {
+  createSubject,
+  getSubject,
+  deleteSubject,
+  updateSubject,
+  subjectById,
+};

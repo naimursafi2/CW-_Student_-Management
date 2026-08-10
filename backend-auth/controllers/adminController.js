@@ -1,4 +1,3 @@
-
 const User = require("../models/User");
 
 function formatUser(user) {
@@ -18,7 +17,7 @@ function formatUser(user) {
 
 const getAllUsers = async (req, res, next) => {
   try {
- const allUser =  await User.find({
+    const allUser = await User.find({
       role: { $in: ["student", "teacher"] },
     });
     return res
@@ -212,6 +211,25 @@ const getStudents = async (req, res) => {
   }
 };
 
+const getStudentById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const studentInfo = await User.findOne({
+      _id: id,
+      role: "student",
+    });
+    console.log(studentInfo);
+
+    return res
+      .status(200)
+      .send({
+        success: true,
+        message: "success to retrieve message",
+        data: studentInfo,
+      });
+  } catch (error) {}
+};
+
 module.exports = {
   getAllUsers,
   approvedUser,
@@ -220,4 +238,5 @@ module.exports = {
   rejectUser,
   getTeachers,
   getStudents,
+  getStudentById,
 };
