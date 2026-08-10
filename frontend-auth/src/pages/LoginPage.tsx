@@ -40,7 +40,7 @@ export function LoginPage() {
 
   return (
     <AuthLayout title="Sign in" subtitle="Access your account">
-      <form className="auth-form" onSubmit={handleSubmit}>
+      <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit}>
         {error && <Alert type="error" message={error} />}
 
         {/*{needsVerification && (
@@ -71,8 +71,8 @@ export function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        <div className="form-actions">
-          <Link to="/forgot-password" className="link-sm">
+        <div className="flex justify-end">
+          <Link to="/forgot-password" className="text-sm">
             Forgot password?
           </Link>
         </div>
@@ -81,12 +81,12 @@ export function LoginPage() {
           {isSubmitting ? 'Signing in...' : 'Sign in'}
         </Button>
 
-        <p className="auth-footer">
+        <p className="m-0 text-center text-[0.9375rem]">
           No account? <Link to="/register">Create one</Link>
         </p>
 
         {needsVerification && (
-          <p className="auth-footer">
+          <p className="m-0 text-center text-[0.9375rem]">
             <Link to={`/resend-verification?email=${encodeURIComponent(email)}`}>
               Resend verification email
             </Link>

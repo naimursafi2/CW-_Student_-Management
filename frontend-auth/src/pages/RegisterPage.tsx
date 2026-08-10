@@ -46,7 +46,7 @@ export function RegisterPage() {
 
   return (
     <AuthLayout title="Create account" subtitle="Register to get started">
-      <form className="auth-form" onSubmit={handleSubmit}>
+      <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit}>
         {error && <Alert type="error" message={error} />}
         {success && <Alert type="success" message={success} />}
 
@@ -102,7 +102,7 @@ export function RegisterPage() {
           </Button>
         )}
 
-        <p className="auth-footer">
+        <p className="m-0 text-center text-[0.9375rem]">
           Already have an account? <Link to="/login">Sign in</Link>
         </p>
       </form>

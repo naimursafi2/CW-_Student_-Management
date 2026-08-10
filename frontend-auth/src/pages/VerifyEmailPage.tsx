@@ -44,7 +44,7 @@ export function VerifyEmailPage() {
 
   return (
     <AuthLayout title="Email verification" subtitle="Confirming your email address">
-      {status === 'loading' && <p className="muted">Verifying your email...</p>}
+      {status === 'loading' && <p className="m-0 text-slate-500">Verifying your email...</p>}
 
       {status === 'success' && (
         <>
@@ -61,7 +61,7 @@ export function VerifyEmailPage() {
           <Button fullWidth onClick={() => navigate('/resend-verification')}>
             Resend verification email
           </Button>
-          <p className="auth-footer">
+          <p className="m-0 text-center text-[0.9375rem]">
             <Link to="/login">Back to sign in</Link>
           </p>
         </>

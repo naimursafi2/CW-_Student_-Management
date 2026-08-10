@@ -54,7 +54,7 @@ export function ResetPasswordPage() {
     return (
       <AuthLayout title="Reset password" subtitle="Set a new password">
         <Alert type="error" message="Reset token is missing. Please use the link from your email." />
-        <p className="auth-footer">
+        <p className="m-0 text-center text-[0.9375rem]">
           <Link to="/forgot-password">Request a new reset link</Link>
         </p>
       </AuthLayout>
@@ -63,7 +63,7 @@ export function ResetPasswordPage() {
 
   return (
     <AuthLayout title="Reset password" subtitle="Choose a new password">
-      <form className="auth-form" onSubmit={handleSubmit}>
+      <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit}>
         {error && <Alert type="error" message={error} />}
 
         <Input
@@ -93,7 +93,7 @@ export function ResetPasswordPage() {
           {isSubmitting ? 'Resetting...' : 'Reset password'}
         </Button>
 
-        <p className="auth-footer">
+        <p className="m-0 text-center text-[0.9375rem]">
           <Link to="/login">Back to sign in</Link>
         </p>
       </form>

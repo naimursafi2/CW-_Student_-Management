@@ -46,7 +46,7 @@ export function ForgotPasswordPage() {
 
   return (
     <AuthLayout title="Forgot password" subtitle="We'll email you a reset link">
-      <form className="auth-form" onSubmit={handleSubmit}>
+      <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit}>
         {error && <Alert type="error" message={error} />}
         {message && <Alert type="success" message={message} />}
 
@@ -70,7 +70,7 @@ export function ForgotPasswordPage() {
           {isSubmitting ? 'Sending...' : 'Send reset link'}
         </Button>
 
-        <p className="auth-footer">
+        <p className="m-0 text-center text-[0.9375rem]">
           Remember your password? <Link to="/login">Sign in</Link>
         </p>
       </form>

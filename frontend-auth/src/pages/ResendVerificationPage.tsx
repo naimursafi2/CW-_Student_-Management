@@ -50,7 +50,7 @@ export function ResendVerificationPage() {
       title="Resend verification"
       subtitle="We'll send a new verification link to your email"
     >
-      <form className="auth-form" onSubmit={handleSubmit}>
+      <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit}>
         {error && <Alert type="error" message={error} />}
         {message && <Alert type="success" message={message} />}
 
@@ -74,7 +74,7 @@ export function ResendVerificationPage() {
           {isSubmitting ? 'Sending...' : 'Resend verification email'}
         </Button>
 
-        <p className="auth-footer">
+        <p className="m-0 text-center text-[0.9375rem]">
           <Link to="/login">Back to sign in</Link>
         </p>
       </form>
