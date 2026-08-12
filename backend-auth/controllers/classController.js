@@ -9,6 +9,7 @@ function formatClass(cls) {
     code: cls.code,
     description: cls.description,
     creatorId: cls.creatorId,
+    teacher: cls.teacher,
     subjects: cls.subjects || [],
     students: cls.students || [],
     createdAt: cls.createdAt,
@@ -60,9 +61,11 @@ const createClass = async (req, res) => {
 
 const getClasses = async (req, res) => {
   try {
-    const filter = req.user.role === "student" ? { students: req.user._id } : {};
+    const filter = req.user.role === "student" ? { students: req.user._id } : req.user.role === "teacher" ? { teacher: req.user._id } : {};
     const classes = await Class.find(filter)
       .populate("subjects")
+      .populate("students", "name email")
+      .populate("teacher", "name email")
       .sort({ createdAt: -1 });
 
     return res.status(200).json({
@@ -85,7 +88,7 @@ const getClasses = async (req, res) => {
 const updateClass = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, code, description, subjects, students } = req.body;
+    const { name, code, description, subjects, students, teacher } = req.body;
 
     const cls = await Class.findById(id);
     if (!cls) {
@@ -118,6 +121,14 @@ const updateClass = async (req, res) => {
         return res.status(400).json({ success: false, message: "Select valid student accounts only." });
       }
       cls.students = students;
+    }
+    if (teacher !== undefined) {
+      if (teacher === null || teacher === "") cls.teacher = null;
+      else {
+        const validTeacher = await User.exists({ _id: teacher, role: "teacher", isApproved: true, isEmailVerified: true });
+        if (!validTeacher) return res.status(400).json({ success: false, message: "Select an approved, verified teacher." });
+        cls.teacher = teacher;
+      }
     }
 
     await cls.save();

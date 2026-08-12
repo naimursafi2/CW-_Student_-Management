@@ -6,6 +6,7 @@ import { DashboardNavbar } from '../components/layout/DashboardNavbar';
 import { StudentDashboard } from '../components/students/StudentDashboard';
 import { ProfilePictureEditor } from '../components/profile/ProfilePictureEditor';
 import { AcademicManagement } from '../components/academic/AcademicManagement';
+import { TeacherDashboard } from '../components/teacher/TeacherDashboard';
 
 export function HomePage() {
   const { user, logout } = useAuth();
@@ -39,7 +40,8 @@ export function HomePage() {
           </section>
 
           {user?.role === 'admin' && <div id="user-list" className="scroll-mt-24"><UserManagement /></div>}
-          {(user?.role === 'admin' || user?.role === 'teacher') && <AcademicManagement />}
+          {user?.role === 'admin' && <AcademicManagement />}
+          {user?.role === 'teacher' && <TeacherDashboard />}
           {user?.role === 'student' && <StudentDashboard />}
 
           <p className="m-0 text-slate-500">

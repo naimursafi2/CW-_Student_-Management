@@ -1,7 +1,7 @@
 import { apiClient } from './client';
 import type { Notice, StudentClass, StudentSubject } from './student.api';
 
-export interface ClassInput { name: string; code: string; description?: string; students?: string[]; subjects?: string[]; }
+export interface ClassInput { name: string; code: string; description?: string; students?: string[]; subjects?: string[]; teacher?: string | null; }
 export interface SubjectInput { subName: string; code: string; credits?: string; description?: string; }
 export interface NoticeInput { title: string; description: string; imageUrl?: string; }
 
@@ -31,14 +31,14 @@ export async function createNotice(input: NoticeInput) {
   return apiClient.post('/notice/create', input);
 }
 
-export interface AssignableStudent { _id: string; name: string; email: string; }
+export interface AssignableStudent { _id?: string; id?: string; name: string; email: string; }
 
 export async function getAssignableStudents() {
   const { data } = await apiClient.get<{ data?: { students?: AssignableStudent[] } }>('/class/students');
   return data.data?.students ?? [];
 }
 
-export async function updateClassAssignments(id: string, input: Pick<ClassInput, 'students' | 'subjects'>) {
+export async function updateClassAssignments(id: string, input: Pick<ClassInput, 'students' | 'subjects' | 'teacher'>) {
   return apiClient.put(`/class/update/${id}`, input);
 }
 
@@ -49,3 +49,12 @@ export async function updateClass(id: string, input: Pick<ClassInput, 'name' | '
 export async function deleteClass(id: string) {
   return apiClient.delete(`/class/delete/${id}`);
 }
+
+export async function getTeachers() {
+  const { data } = await apiClient.get<{ data?: { teacher?: AssignableStudent[] } }>('/admin/teachers?status=approved');
+  return data.data?.teacher?.filter((teacher) => Boolean(teacher._id ?? teacher.id)) ?? [];
+}
+
+export async function getTeacherClass(id: string) { return apiClient.get<{ data: { class: StudentClass } }>(`/teacher/classes/${id}`); }
+export async function saveAttendance(id: string, date: string, records: { studentId: string; status: 'present' | 'absent' }[]) { return apiClient.post(`/teacher/classes/${id}/attendance`, { date, records }); }
+export async function saveMarks(id: string, studentId: string, subjectId: string, marks: number) { return apiClient.put(`/teacher/classes/${id}/results`, { studentId, subjectId, marks }); }

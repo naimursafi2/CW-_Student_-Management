@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
-import { createClass, createNotice, createSubject, deleteClass, getAcademicData, getAssignableStudents, updateClass, updateClassAssignments, type AssignableStudent } from '../../api/academic.api';
+import { createClass, createNotice, createSubject, deleteClass, getAcademicData, getAssignableStudents, getTeachers, updateClass, updateClassAssignments, type AssignableStudent } from '../../api/academic.api';
 import { getApiErrorMessage } from '../../api/client';
 import type { StudentClass, StudentSubject } from '../../api/student.api';
+import { toast } from 'react-toastify';
 
 const initialClass = { name: '', code: '', description: '' };
 const initialSubject = { subName: '', code: '', credits: '', description: '' };
@@ -13,25 +14,25 @@ export function AcademicManagement() {
   const [classes, setClasses] = useState<StudentClass[]>([]);
   const [subjects, setSubjects] = useState<StudentSubject[]>([]);
   const [students, setStudents] = useState<AssignableStudent[]>([]);
+  const [teachers, setTeachers] = useState<AssignableStudent[]>([]);
   const [classForm, setClassForm] = useState(initialClass);
   const [subjectForm, setSubjectForm] = useState(initialSubject);
   const [noticeForm, setNoticeForm] = useState(initialNotice);
-  const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [managedClassId, setManagedClassId] = useState<string | null>(null);
   const [editingClassId, setEditingClassId] = useState<string | null>(null);
 
-  const studentOptions = useMemo(() => students.map((student) => ({ value: student._id, label: `${student.name} — ${student.email}`, searchText: `${student.name} ${student.email}` })), [students]);
+  const studentOptions = useMemo(() => students.map((student) => ({ value: student._id ?? student.id ?? '', label: `${student.name} — ${student.email}`, searchText: `${student.name} ${student.email}` })).filter((student) => Boolean(student.value)), [students]);
   const subjectOptions = useMemo(() => subjects.map((subject) => ({ value: subject.id ?? subject._id ?? '', label: `${subject.subName} (${subject.code})`, searchText: `${subject.subName} ${subject.code}` })).filter((subject) => Boolean(subject.value)), [subjects]);
 
   const loadData = useCallback(async () => {
     setIsLoading(true); setError('');
     try {
-      const [data, availableStudents] = await Promise.all([getAcademicData(), getAssignableStudents()]);
+      const [data, availableStudents, availableTeachers] = await Promise.all([getAcademicData(), getAssignableStudents(), getTeachers()]);
       const uniqueClasses = data.classes.filter((cls, index, items) => items.findIndex((item) => item.code.toLowerCase() === cls.code.toLowerCase()) === index);
-      setClasses(uniqueClasses); setSubjects(data.subjects); setStudents(availableStudents);
+      setClasses(uniqueClasses); setSubjects(data.subjects); setStudents(availableStudents); setTeachers(availableTeachers);
     } catch (err) { setError(getApiErrorMessage(err, 'Could not load academic data.')); }
     finally { setIsLoading(false); }
   }, []);
@@ -39,57 +40,67 @@ export function AcademicManagement() {
   useEffect(() => { void loadData(); }, [loadData]);
 
   const submit = async (event: FormEvent<HTMLFormElement>, type: 'class' | 'subject' | 'notice') => {
-    event.preventDefault(); setError(''); setMessage(''); setIsSaving(true);
+    event.preventDefault(); setError(''); setIsSaving(true);
     try {
-      if (type === 'class') { await createClass(classForm); setClassForm(initialClass); }
-      if (type === 'subject') { await createSubject(subjectForm); setSubjectForm(initialSubject); }
+      if (type === 'class') {
+        const response = await createClass(classForm);
+        const created = response.data?.data as StudentClass | undefined;
+        if (created) setClasses((current) => [created, ...current]);
+        setClassForm(initialClass);
+      }
+      if (type === 'subject') {
+        const response = await createSubject(subjectForm);
+        const created = response.data?.data as StudentSubject | undefined;
+        if (created) setSubjects((current) => [created, ...current]);
+        setSubjectForm(initialSubject);
+      }
       if (type === 'notice') { await createNotice(noticeForm); setNoticeForm(initialNotice); }
-      setMessage(`${type === 'class' ? 'Class' : type === 'subject' ? 'Subject' : 'Notice'} created successfully.`);
-      await loadData();
-    } catch (err) { setError(getApiErrorMessage(err, `Could not create ${type}.`)); }
+      toast.success(`${type === 'class' ? 'Class' : type === 'subject' ? 'Subject' : 'Notice'} created successfully.`);
+    } catch (err) { const text = getApiErrorMessage(err, `Could not create ${type}.`); setError(text); toast.error(text); }
     finally { setIsSaving(false); }
   };
 
-  const saveAssignments = async (cls: StudentClass, selectedStudents: string[], selectedSubjects: string[]) => {
-    setError(''); setMessage(''); setIsSaving(true);
+  const saveAssignments = async (cls: StudentClass, selectedStudents: string[], selectedSubjects: string[], teacher: string | null) => {
+    setError(''); setIsSaving(true);
     try {
-      await updateClassAssignments(cls.id, { students: selectedStudents, subjects: selectedSubjects });
-      setMessage(`${cls.name} assignments updated.`); await loadData();
-    } catch (err) { setError(getApiErrorMessage(err, 'Could not update assignments.')); }
+      await updateClassAssignments(cls.id, { students: selectedStudents, subjects: selectedSubjects, teacher });
+      const assignedTeacher = teacher ? teachers.find((item) => (item._id ?? item.id) === teacher) : undefined;
+      setClasses((current) => current.map((item) => item.id === cls.id ? { ...item, students: selectedStudents, subjects: subjects.filter((subject) => selectedSubjects.includes(subject.id ?? subject._id ?? '')), teacher: assignedTeacher ? { _id: assignedTeacher._id ?? assignedTeacher.id, id: assignedTeacher.id, name: assignedTeacher.name, email: assignedTeacher.email } : null } : item));
+      toast.success(`${cls.name} assignments saved.`);
+    } catch (err) { const text = getApiErrorMessage(err, 'Could not update assignments.'); setError(text); toast.error(text); }
     finally { setIsSaving(false); }
   };
 
   const saveClassDetails = async (cls: StudentClass, details: { name: string; code: string; description: string }) => {
-    setError(''); setMessage(''); setIsSaving(true);
+    setError(''); setIsSaving(true);
     try {
       await updateClass(cls.id, details);
-      setEditingClassId(null); setMessage(`${details.name} updated successfully.`); await loadData();
-    } catch (err) { setError(getApiErrorMessage(err, 'Could not update class.')); }
+      setEditingClassId(null); setClasses((current) => current.map((item) => item.id === cls.id ? { ...item, ...details, code: details.code.toUpperCase() } : item)); toast.success(`${details.name} updated successfully.`);
+    } catch (err) { const text = getApiErrorMessage(err, 'Could not update class.'); setError(text); toast.error(text); }
     finally { setIsSaving(false); }
   };
 
   const removeClass = async (cls: StudentClass) => {
     if (!window.confirm(`Delete ${cls.name} (${cls.code})? This cannot be undone.`)) return;
-    setError(''); setMessage(''); setIsSaving(true);
+    setError(''); setIsSaving(true);
     try {
       await deleteClass(cls.id);
       if (managedClassId === cls.id) setManagedClassId(null);
       if (editingClassId === cls.id) setEditingClassId(null);
-      setMessage(`${cls.name} deleted successfully.`); await loadData();
-    } catch (err) { setError(getApiErrorMessage(err, 'Could not delete class.')); }
+      setClasses((current) => current.filter((item) => item.id !== cls.id)); toast.success(`${cls.name} deleted successfully.`);
+    } catch (err) { const text = getApiErrorMessage(err, 'Could not delete class.'); setError(text); toast.error(text); }
     finally { setIsSaving(false); }
   };
 
   return <section id="academic-management" className="scroll-mt-24">
     <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><div><h2 className="m-0 text-xl font-bold">Academic Management</h2><p className="mt-1 mb-0 text-sm text-slate-500">First create subjects, then assign students and subjects to a class.</p></div><button onClick={() => void loadData()} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Refresh</button></div>
-    {message && <p className="mb-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">{message}</p>}
     {error && <p className="mb-4 rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
     <div className="grid gap-5 lg:grid-cols-3">
       <form onSubmit={(event) => void submit(event, 'class')} className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200"><h3 className="m-0 text-lg font-bold">Create Class</h3><p className="mt-1 text-sm text-slate-500">Assign students and subjects after creating the class.</p><div className="mt-4 grid gap-3"><input required value={classForm.name} onChange={(e) => setClassForm({ ...classForm, name: e.target.value })} placeholder="Class name" className="rounded-lg border border-slate-300 px-3 py-2" /><input required value={classForm.code} onChange={(e) => setClassForm({ ...classForm, code: e.target.value })} placeholder="Class code" className="rounded-lg border border-slate-300 px-3 py-2" /><textarea value={classForm.description} onChange={(e) => setClassForm({ ...classForm, description: e.target.value })} placeholder="Description (optional)" className="min-h-24 rounded-lg border border-slate-300 px-3 py-2" /><button disabled={isSaving} className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white disabled:opacity-60">Create class</button></div></form>
       <form onSubmit={(event) => void submit(event, 'subject')} className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200"><h3 className="m-0 text-lg font-bold">Create Subject</h3><div className="mt-4 grid gap-3"><input required value={subjectForm.subName} onChange={(e) => setSubjectForm({ ...subjectForm, subName: e.target.value })} placeholder="Subject name" className="rounded-lg border border-slate-300 px-3 py-2" /><input required value={subjectForm.code} onChange={(e) => setSubjectForm({ ...subjectForm, code: e.target.value })} placeholder="Subject code" className="rounded-lg border border-slate-300 px-3 py-2" /><input value={subjectForm.credits} onChange={(e) => setSubjectForm({ ...subjectForm, credits: e.target.value })} placeholder="Credits (optional)" className="rounded-lg border border-slate-300 px-3 py-2" /><textarea value={subjectForm.description} onChange={(e) => setSubjectForm({ ...subjectForm, description: e.target.value })} placeholder="Description (optional)" className="min-h-20 rounded-lg border border-slate-300 px-3 py-2" /><button disabled={isSaving} className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white disabled:opacity-60">Create subject</button></div></form>
       <form onSubmit={(event) => void submit(event, 'notice')} className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200"><h3 className="m-0 text-lg font-bold">Create Notice</h3><div className="mt-4 grid gap-3"><input required value={noticeForm.title} onChange={(e) => setNoticeForm({ ...noticeForm, title: e.target.value })} placeholder="Notice title" className="rounded-lg border border-slate-300 px-3 py-2" /><textarea required value={noticeForm.description} onChange={(e) => setNoticeForm({ ...noticeForm, description: e.target.value })} placeholder="Notice details" className="min-h-20 rounded-lg border border-slate-300 px-3 py-2" /><input value={noticeForm.imageUrl} onChange={(e) => setNoticeForm({ ...noticeForm, imageUrl: e.target.value })} placeholder="Image URL (optional)" className="rounded-lg border border-slate-300 px-3 py-2" /><button disabled={isSaving} className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white disabled:opacity-60">Publish notice</button></div></form>
     </div>
-    {!isLoading && <section className="mt-6 rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200"><h3 className="m-0 text-lg font-bold">Class List</h3><p className="mt-1 text-sm text-slate-500">Manage assignments, edit details, or delete a class.</p><div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{classes.map((cls) => <article key={cls.id} className="rounded-lg border border-slate-200 p-4"><h4 className="m-0 text-lg font-bold">{cls.name}</h4><p className="mt-1 text-sm font-semibold text-blue-700">{cls.code}</p><div className="mt-3 flex gap-3 text-sm text-slate-600"><span>{cls.students?.length ?? 0} students</span><span>{cls.subjects?.length ?? 0} subjects</span></div><div className="mt-4 flex flex-wrap gap-2"><button type="button" onClick={() => setManagedClassId(managedClassId === cls.id ? null : cls.id)} className="rounded-lg bg-slate-800 px-3 py-2 text-sm font-semibold text-white">{managedClassId === cls.id ? 'Close manager' : 'Manage class'}</button><button type="button" onClick={() => setEditingClassId(editingClassId === cls.id ? null : cls.id)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700">{editingClassId === cls.id ? 'Cancel edit' : 'Edit'}</button><button type="button" disabled={isSaving} onClick={() => void removeClass(cls)} className="rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">Delete</button></div>{editingClassId === cls.id && <div className="mt-4 border-t border-slate-200 pt-4"><ClassEditor cls={cls} disabled={isSaving} onSave={saveClassDetails} /></div>}{managedClassId === cls.id && <div className="mt-4 border-t border-slate-200 pt-4"><AssignmentEditor cls={cls} studentOptions={studentOptions} subjectOptions={subjectOptions} disabled={isSaving} onSave={saveAssignments} /></div>}</article>)}{!classes.length && <p className="text-sm text-slate-500">No classes yet.</p>}</div></section>}
+    {!isLoading && <section className="mt-6 rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200"><h3 className="m-0 text-lg font-bold">Class List</h3><p className="mt-1 text-sm text-slate-500">Manage assignments, teacher, details, or delete a class.</p><div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{classes.map((cls) => <article key={cls.id} className="rounded-lg border border-slate-200 p-4"><h4 className="m-0 text-lg font-bold">{cls.name}</h4><p className="mt-1 text-sm font-semibold text-blue-700">{cls.code}</p><p className="mt-2 text-sm text-slate-600">Teacher: <strong>{cls.teacher?.name ?? 'Not assigned'}</strong></p><div className="mt-3 flex gap-3 text-sm text-slate-600"><span>{cls.students?.length ?? 0} students</span><span>{cls.subjects?.length ?? 0} subjects</span></div><div className="mt-4 flex flex-wrap gap-2"><button type="button" onClick={() => setManagedClassId(managedClassId === cls.id ? null : cls.id)} className="rounded-lg bg-slate-800 px-3 py-2 text-sm font-semibold text-white">{managedClassId === cls.id ? 'Close manager' : 'Manage class'}</button><button type="button" onClick={() => setEditingClassId(editingClassId === cls.id ? null : cls.id)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700">{editingClassId === cls.id ? 'Cancel edit' : 'Edit'}</button><button type="button" disabled={isSaving} onClick={() => void removeClass(cls)} className="rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">Delete</button></div>{editingClassId === cls.id && <div className="mt-4 border-t border-slate-200 pt-4"><ClassEditor cls={cls} disabled={isSaving} onSave={saveClassDetails} /></div>}{managedClassId === cls.id && <div className="mt-4 border-t border-slate-200 pt-4"><AssignmentEditor cls={cls} studentOptions={studentOptions} subjectOptions={subjectOptions} teachers={teachers} disabled={isSaving} onSave={saveAssignments} /></div>}</article>)}{!classes.length && <p className="text-sm text-slate-500">No classes yet.</p>}</div></section>}
   </section>;
 }
 
@@ -108,9 +119,10 @@ function ClassEditor({ cls, disabled, onSave }: { cls: StudentClass; disabled: b
   return <form onSubmit={(event) => { event.preventDefault(); void onSave(cls, details); }} className="grid gap-3"><h5 className="m-0 font-bold">Edit class</h5><input required value={details.name} onChange={(event) => setDetails({ ...details, name: event.target.value })} placeholder="Class name" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" /><input required value={details.code} onChange={(event) => setDetails({ ...details, code: event.target.value })} placeholder="Class code" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" /><textarea value={details.description} onChange={(event) => setDetails({ ...details, description: event.target.value })} placeholder="Description" className="min-h-20 rounded-lg border border-slate-300 px-3 py-2 text-sm" /><button disabled={disabled} className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">Save changes</button></form>;
 }
 
-function AssignmentEditor({ cls, studentOptions, subjectOptions, disabled, onSave }: { cls: StudentClass; studentOptions: SelectionOption[]; subjectOptions: SelectionOption[]; disabled: boolean; onSave: (cls: StudentClass, students: string[], subjects: string[]) => Promise<void> }) {
+function AssignmentEditor({ cls, studentOptions, subjectOptions, teachers, disabled, onSave }: { cls: StudentClass; studentOptions: SelectionOption[]; subjectOptions: SelectionOption[]; teachers: AssignableStudent[]; disabled: boolean; onSave: (cls: StudentClass, students: string[], subjects: string[], teacher: string | null) => Promise<void> }) {
   const [studentIds, setStudentIds] = useState<string[]>([]);
   const [subjectIds, setSubjectIds] = useState<string[]>([]);
-  useEffect(() => { setStudentIds((cls.students ?? []).map((student) => typeof student === 'string' ? student : student._id ?? student.id).filter((id): id is string => Boolean(id))); setSubjectIds((cls.subjects ?? []).map((subject) => typeof subject === 'string' ? subject : subject._id ?? subject.id).filter((id): id is string => Boolean(id))); }, [cls]);
-  return <article className="rounded-lg border border-slate-200 p-4"><h4 className="m-0 font-bold">{cls.name} <span className="text-sm font-normal text-slate-500">({cls.code})</span></h4><div className="mt-3 grid gap-3"><CheckboxSelector label="Students" options={studentOptions} value={studentIds} onChange={setStudentIds} empty="No verified students found." /><CheckboxSelector label="Subjects" options={subjectOptions} value={subjectIds} onChange={setSubjectIds} empty="No subjects found." /><button type="button" disabled={disabled} onClick={() => void onSave(cls, studentIds, subjectIds)} className="rounded-lg bg-slate-800 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">Save assignments</button></div></article>;
+  const [teacherId, setTeacherId] = useState('');
+  useEffect(() => { setStudentIds((cls.students ?? []).map((student) => typeof student === 'string' ? student : student._id ?? student.id).filter((id): id is string => Boolean(id))); setSubjectIds((cls.subjects ?? []).map((subject) => typeof subject === 'string' ? subject : subject._id ?? subject.id).filter((id): id is string => Boolean(id))); setTeacherId(cls.teacher?._id ?? cls.teacher?.id ?? ''); }, [cls]);
+  return <article className="rounded-lg border border-slate-200 p-4"><h4 className="m-0 font-bold">{cls.name} <span className="text-sm font-normal text-slate-500">({cls.code})</span></h4><div className="mt-3 grid gap-3"><label className="grid gap-1 text-sm font-semibold text-slate-700">Assigned teacher<select value={teacherId} onChange={(event) => setTeacherId(event.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-normal"><option value="">No teacher assigned</option>{teachers.map((teacher) => { const id = teacher._id ?? teacher.id ?? ''; return <option key={id} value={id}>{teacher.name} — {teacher.email}</option>; })}</select></label><CheckboxSelector label="Students" options={studentOptions} value={studentIds} onChange={setStudentIds} empty="No verified students found." /><CheckboxSelector label="Subjects" options={subjectOptions} value={subjectIds} onChange={setSubjectIds} empty="No subjects found." /><button type="button" disabled={disabled} onClick={() => void onSave(cls, studentIds, subjectIds, teacherId || null)} className="rounded-lg bg-slate-800 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">Save assignments</button></div></article>;
 }
