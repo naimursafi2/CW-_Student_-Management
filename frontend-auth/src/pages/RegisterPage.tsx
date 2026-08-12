@@ -12,6 +12,7 @@ export function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState('');
+  const [role, setRole] = useState<'student' | 'teacher'>('student');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -29,7 +30,7 @@ export function RegisterPage() {
     setIsSubmitting(true);
 
     try {
-      const result = await register({ name, email, password });
+      const result = await register({ name, role, email, password });
       setSuccess('Registration successful! Please check your email to verify your account.');
       if (result.previewUrl) {
         setDevPreviewUrl(result.previewUrl);
@@ -78,6 +79,19 @@ export function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
+
+            <label className="flex flex-col gap-2 text-[0.9375rem] font-medium text-slate-700">
+              Role
+              <select
+                name="role"
+                value={role}
+                onChange={(e) => setRole(e.target.value as 'student' | 'teacher')}
+                className="min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 outline-none transition focus:border-blue-500 focus:ring-3 focus:ring-blue-100"
+              >
+                <option value="student">Student</option>
+                <option value="teacher">Teacher</option>
+              </select>
+            </label>
 
             <Input
               label="Password"

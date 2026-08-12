@@ -2,6 +2,7 @@
 
 @layer base {
   :root { font-family: "Segoe UI", system-ui, -apple-system, sans-serif; color: #0f172a; background-color: #f1f5f9; }
+  html { scroll-behavior: smooth; }
   body { @apply m-0 min-h-screen bg-slate-100; }
   a { @apply text-blue-600 hover:underline; }
 }

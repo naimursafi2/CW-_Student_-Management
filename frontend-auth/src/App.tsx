@@ -1,6 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { GuestRoute, ProtectedRoute } from './components/layout/ProtectedRoute';
+import { AdminRoute, GuestRoute, ProtectedRoute } from './components/layout/ProtectedRoute';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
@@ -8,6 +8,7 @@ import { VerifyEmailPage } from './pages/VerifyEmailPage';
 import { ResendVerificationPage } from './pages/ResendVerificationPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { UserListPage } from './pages/UserListPage';
 
 export default function App() {
   return (
@@ -16,6 +17,9 @@ export default function App() {
         <Routes>
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<HomePage />} />
+            <Route element={<AdminRoute />}>
+              <Route path="/users" element={<UserListPage />} />
+            </Route>
           </Route>
 
           <Route element={<GuestRoute />}>

@@ -1,10 +1,26 @@
 export interface User {
   id: string;
   name: string;
+  role: UserRole;
   email: string;
   isEmailVerified: boolean;
+  isApproved?: boolean;
+  bio?: string;
+  profilePicture?: string;
   createdAt: string;
 }
+
+export interface ManagedUser extends Omit<User, 'id' | 'isEmailVerified'> {
+  id?: string;
+  _id?: string;
+  bio?: string;
+  profilePicture?: string;
+  isEmailVerified?: boolean;
+  // Supports the current backend response while it is being standardized.
+  isEmailVerfied?: boolean;
+}
+
+export type UserRole = 'admin' | 'teacher' | 'student';
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -28,6 +44,7 @@ export interface LoginCredentials {
 
 export interface RegisterCredentials {
   name: string;
+  role: Exclude<UserRole, 'admin'>;
   email: string;
   password: string;
 }

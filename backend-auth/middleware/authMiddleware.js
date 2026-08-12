@@ -45,6 +45,17 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+function requireStaff(req, res, next) {
+  if (!["admin", "teacher"].includes(req.user.role)) {
+    return res.status(403).json({
+      success: false,
+      message: "Admin or teacher access required.",
+    });
+  }
+
+  next();
+}
+
 async function requireVerifiedEmail(req, res, next) {
   if (!req.user.isEmailVerified) {
     return res.status(403).json({
@@ -59,5 +70,6 @@ async function requireVerifiedEmail(req, res, next) {
 module.exports = {
   protect,
   requireVerifiedEmail,
-  requireAdmin
+  requireAdmin,
+  requireStaff,
 };

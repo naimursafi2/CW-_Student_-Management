@@ -84,4 +84,30 @@ const toggleLike = async (req, res) => {
   }
 };
 
-module.exports = { createNotice, toggleLike };
+const getNotices = async (req, res) => {
+  try {
+    const notices = await Notice.find()
+      .populate("postedBy", "name role")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        notices: notices.map((notice) => ({
+          id: notice._id,
+          title: notice.title,
+          description: notice.description,
+          imageUrl: notice.imageUrl,
+          postedBy: notice.postedBy,
+          likesCount: notice.likes.length,
+          liked: notice.likes.some((userId) => userId.equals(req.user._id)),
+          createdAt: notice.createdAt,
+        })),
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to retrieve notices.", error: error.message });
+  }
+};
+
+module.exports = { createNotice, getNotices, toggleLike };

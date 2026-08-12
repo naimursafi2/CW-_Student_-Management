@@ -28,14 +28,14 @@ const classSchema = new mongoose.Schema(
     subjects: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Subject",
+        ref: "subject",
         required: false,
       },
     ],
     students: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "user",
+        ref: "User",
         required: false,
       },
     ],

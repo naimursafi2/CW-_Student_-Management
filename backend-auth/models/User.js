@@ -36,6 +36,16 @@ const userSchema = new mongoose.Schema(
       type:Boolean,
       default:false,
     },
+    profilePicture: {
+      type: String,
+      default: "",
+    },
+    bio: {
+      type: String,
+      trim: true,
+      maxlength: [250, "Bio cannot exceed 250 characters"],
+      default: "",
+    },
     emailVerificationToken: {
       type: String,
       select: false,

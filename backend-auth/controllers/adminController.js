@@ -10,7 +10,7 @@ function formatUser(user) {
     address: user.address,
     role: user.role,
     isApproved: user.isApproved,
-    isEmailVerfied: user.isEmailVerfied,
+    isEmailVerified: user.isEmailVerified,
     createdAt: user.createdAt,
   };
 }

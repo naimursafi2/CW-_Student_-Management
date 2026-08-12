@@ -36,3 +36,13 @@ export function GuestRoute() {
 
   return <Outlet />;
 }
+
+export function AdminRoute() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <div className="flex min-h-screen items-center justify-center text-slate-500">Loading...</div>;
+  }
+
+  return user?.role === 'admin' ? <Outlet /> : <Navigate to="/" replace />;
+}

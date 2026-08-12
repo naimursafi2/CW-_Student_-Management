@@ -1,17 +1,16 @@
 const subject = require("../models/subject");
 const mongoosePaginate = require("mongoose-paginate-v2");
+const Class = require("../models/Class");
 
 const createSubject = async (req, res) => {
-  const { creatorId, subName, code, credits, description } = req.body;
+  const { subName, code, credits, description } = req.body;
 
-  if (!creatorId)
-    return res.status(400).send({ message: "please enter your creatorId" });
   if (!subName)
     return res.status(400).send({ message: "please enter your subject Name" });
   if (!code) return res.status(400).send({ message: "please enter your code" });
 
   const newSubject = new subject({
-    creatorId,
+    creatorId: req.user._id,
     subName,
     code,
     credits,
@@ -24,8 +23,11 @@ const createSubject = async (req, res) => {
 };
 
 const getSubject = async (req, res) => {
-  const Subjects = await subject.find();
-  res.status(201).send({ message: "data get successfully", data: Subjects });
+  const filter = req.user.role === "student"
+    ? { _id: { $in: (await Class.find({ students: req.user._id }).select("subjects")).flatMap((cls) => cls.subjects) } }
+    : {};
+  const subjects = await subject.find(filter);
+  res.status(200).send({ message: "data get successfully", data: subjects });
 };
 
 const deleteSubject = async (req, res) => {

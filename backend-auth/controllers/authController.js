@@ -6,6 +6,7 @@ const {
   signAccessToken,
 } = require("../helpers/tokenHelper");
 const { sendVerificationEmail, sendPasswordResetEmail } = require("../helpers/emailHelper");
+const cloudinary = require("../configuration/cloudinary");
 
 function formatUser(user) {
   return {
@@ -13,6 +14,8 @@ function formatUser(user) {
     name: user.name,
     role: user.role,
     email: user.email,
+    profilePicture: user.profilePicture,
+    bio: user.bio,
     isEmailVerified: user.isEmailVerified,
     isApproved:user.isApproved,
     createdAt: user.createdAt,
@@ -274,6 +277,46 @@ const getMe = async (req, res) => {
   });
 }; 
 
+const updateProfilePicture = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "Please choose an image file." });
+    }
+
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+      return res.status(500).json({ success: false, message: "Cloudinary is not configured." });
+    }
+
+    const uploadedImage = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: "student-management/profiles", resource_type: "image", transformation: [{ width: 600, height: 600, crop: "limit" }] },
+        (error, result) => (error ? reject(error) : resolve(result))
+      );
+      stream.end(req.file.buffer);
+    });
+
+    req.user.profilePicture = uploadedImage.secure_url;
+    await req.user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile picture updated successfully.",
+      data: { user: formatUser(req.user) },
+    });
+  } catch (error) {
+    const cloudinaryMessage = error?.error?.message || error?.message || "Unknown Cloudinary error";
+    console.error("Profile picture upload failed:", {
+      message: cloudinaryMessage,
+      httpCode: error?.http_code || error?.statusCode,
+      name: error?.name,
+    });
+    return res.status(error?.http_code || 500).json({
+      success: false,
+      message: `Cloudinary upload failed: ${cloudinaryMessage}`,
+    });
+  }
+};
+
 const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -391,6 +434,7 @@ module.exports = {
   verifyEmail,
   resendVerification,
   getMe,
+  updateProfilePicture,
   forgotPassword,
   resetPassword,
 };

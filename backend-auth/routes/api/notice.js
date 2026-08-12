@@ -1,10 +1,11 @@
 const express = require("express");
-const { createNotice, toggleLike } = require("../../controllers/noticeController");
-const { protect, requireAdmin } = require("../../middleware/authMiddleware");
+const { createNotice, getNotices, toggleLike } = require("../../controllers/noticeController");
+const { protect, requireStaff, requireVerifiedEmail } = require("../../middleware/authMiddleware");
 
 const router = express.Router();
 
-router.post("/create", protect, requireAdmin, createNotice);
-router.patch("/:id/like", protect, toggleLike);
+router.post("/create", protect, requireVerifiedEmail, requireStaff, createNotice);
+router.get("/get", protect, requireVerifiedEmail, getNotices);
+router.patch("/:id/like", protect, requireVerifiedEmail, toggleLike);
 
 module.exports = router;

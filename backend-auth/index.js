@@ -23,6 +23,7 @@ const limiter = rateLimit({
 dns.setServers(["8.8.8.8", "8.8.4.4"]);
 app.use(cors());
 app.use(express.json());
+app.use("/uploads", express.static("uploads"));
 app.use(limiter)
 app.use(routes);
 
