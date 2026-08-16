@@ -1,0 +1,51 @@
+services:
+  # Express API (backend-auth)
+  - type: web
+    name: cw-student-management-backend
+    runtime: node
+    rootDir: backend-auth
+    plan: free
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: BASE_URL
+        value: /api/v1
+      - key: MONGODB_URL
+        sync: false
+      - key: MONGODB_USE_MEMORY
+        value: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: EMAIL_VERIFICATION_EXPIRES_HOURS
+        value: 24
+      - key: APP_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: SMTP_SERVICE
+        value: gmail
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+
+  # React/Vite static site (frontend-auth)
+  - type: web
+    name: cw-student-management-frontend
+    runtime: static
+    rootDir: frontend-auth
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
