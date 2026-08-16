@@ -1,6 +1,6 @@
 const subject = require("../models/subject");
 const mongoosePaginate = require("mongoose-paginate-v2");
-const Class = require("../models/Class");
+const Class = require("../models/class");
 
 const createSubject = async (req, res) => {
   const { subName, code, credits, description } = req.body;
