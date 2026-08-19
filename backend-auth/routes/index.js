@@ -2,14 +2,17 @@ const express = require("express");
 const router = express.Router();
 const apiRoutes = require("./api");
 
-const api = process.env.BASE_URL;
+// Use explicit relative path prefix for route mounting
+const apiPrefix = process.env.BASE_URL || "/api/v1";
 
-router.use(api, apiRoutes);
+router.use(apiPrefix, apiRoutes);
 
-router.use(api, (req, res) =>
-  res
-    .status(404)
-    .json({ success: false, message: "No Api Found On This Route Location" }),
-);
+// Catch-all 404 handler for unmatched API routes
+router.use(apiPrefix, (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "No API endpoint found at this route location.",
+  });
+});
 
 module.exports = router;
