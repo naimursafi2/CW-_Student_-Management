@@ -9,47 +9,60 @@ const routes = require("./routes");
 const app = express();
 const PORT = process.env.PORT || 8000;
 
-// 1. CRITICAL FIX: Enable trust proxy for Render reverse proxy setup
+// 1. Enable trust proxy for Render reverse proxy setup (Fixes Rate Limit Crash)
 app.set("trust proxy", 1);
 
-// 2. Rate Limiter Configuration
+// 2. Configure CORS to allow requests from Frontend
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    credentials: true,
+  })
+);
+
+// 3. Body Parsers
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use("/uploads", express.static("uploads"));
+
+// 4. Rate Limiter Configuration (Increased limit to 100 for dev testing)
 const limiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
-  limit: 20,
+  limit: 100, // Increased limit so developers don't get blocked
   standardHeaders: "draft-8",
   ipv6Subnet: 56,
   skipSuccessfulRequests: true,
   message: { error: "Too many requests from this IP, please try again later" },
 });
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use("/uploads", express.static("uploads"));
 app.use(limiter);
 
-// Routes
+// 5. Mount API Routes
 app.use(routes);
 
 app.get("/", function (req, res) {
-  res.send("Auth API");
+  res.send("Auth API Running");
 });
 
-// Server Initialization
+// 6. Server Initialization
 async function startServer() {
   try {
     // Connect to Database
     await dbConnection();
 
     // Initialize Mailer BEFORE accepting web traffic
-    await initEmailTransport();
+    try {
+      await initEmailTransport();
+    } catch (mailError) {
+      console.error("Mail Transport Warning:", mailError.message);
+    }
 
     // Start Express Server
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
   } catch (error) {
-    console.error("Failed to initialize dependencies:", error.message);
+    console.error("Failed to start server:", error.message);
     process.exit(1);
   }
 }

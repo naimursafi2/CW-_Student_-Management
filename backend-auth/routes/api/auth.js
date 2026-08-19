@@ -4,7 +4,7 @@ const authController = require("../../controllers/authController.js");
 const { protect, requireVerifiedEmail } = require("../../middleware/authMiddleware.js");
 const upload = require("../../middleware/uploadMiddleware.js");
 
-// Public authentication routes
+// Public Authentication Endpoints
 router.post("/register", authController.register);
 router.post("/login", authController.login);
 router.get("/verify-email/:token", authController.verifyEmail);
@@ -12,10 +12,8 @@ router.post("/resend-verification", authController.resendVerification);
 router.post("/forgot-password", authController.forgotPassword);
 router.post("/reset-password/:token", authController.resetPassword);
 
-// Protected routes
+// Protected Endpoints
 router.get("/me", protect, requireVerifiedEmail, authController.getMe);
-
-// Profile picture route with Multer error handling
 router.patch(
   "/profile-picture",
   protect,
