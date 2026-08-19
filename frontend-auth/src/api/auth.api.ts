@@ -1,5 +1,4 @@
 import { apiClient } from './client';
-import { getToken } from '../utils/tokenStorage';
 import type {
   ApiResponse,
   AuthPayload,
@@ -51,13 +50,15 @@ export async function getMe() {
 export async function updateProfilePicture(file: File) {
   const formData = new FormData();
   formData.append('profilePicture', file);
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
-  const response = await fetch(`${baseUrl}/auth/profile-picture`, {
-    method: 'PATCH',
-    headers: { Authorization: `Bearer ${getToken() ?? ''}` },
-    body: formData,
-  });
-  const data = await response.json() as ApiResponse<{ user: User }>;
-  if (!response.ok) throw new Error(data.message || 'Upload failed.');
+
+  const { data } = await apiClient.patch<ApiResponse<{ user: User }>>(
+    '/auth/profile-picture',
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }
+  );
   return data;
 }
