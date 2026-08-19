@@ -3,49 +3,55 @@ const express = require("express");
 const cors = require("cors");
 const dbConnection = require("./configuration/dbConnection.js");
 const { initEmailTransport } = require("./helpers/emailHelper");
-const {rateLimit} =require('express-rate-limit')
+const { rateLimit } = require("express-rate-limit");
 const routes = require("./routes");
-const dns = require("dns");
 
 const app = express();
 const PORT = process.env.PORT || 8000;
 
-const limiter = rateLimit({
-	windowMs: 10 * 60 * 1000, // 15 minutes
-	limit: 20, 
-	standardHeaders: 'draft-8', 
-	ipv6Subnet: 56, 
-  skipSuccessfulRequests:true,
-  message: {error:"Too many request from this IP, please try again letter"}
-	
-})
+// 1. CRITICAL FIX: Enable trust proxy for Render reverse proxy setup
+app.set("trust proxy", 1);
 
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
+// 2. Rate Limiter Configuration
+const limiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  limit: 20,
+  standardHeaders: "draft-8",
+  ipv6Subnet: 56,
+  skipSuccessfulRequests: true,
+  message: { error: "Too many requests from this IP, please try again later" },
+});
+
+// Middleware
 app.use(cors());
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
-app.use(limiter)
-app.use(routes);
+app.use(limiter);
 
+// Routes
+app.use(routes);
 
 app.get("/", function (req, res) {
   res.send("Auth API");
 });
 
+// Server Initialization
 async function startServer() {
-  await dbConnection();
+  try {
+    // Connect to Database
+    await dbConnection();
 
-  app.listen(PORT, async () => {
-    console.log(`Server running on port ${PORT}`);
-    try {
-      await initEmailTransport();
-    } catch (error) {
-      console.error("Failed to initialize mail transport:", error.message);
-    }
-  });
+    // Initialize Mailer BEFORE accepting web traffic
+    await initEmailTransport();
+
+    // Start Express Server
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to initialize dependencies:", error.message);
+    process.exit(1);
+  }
 }
 
-startServer().catch((error) => {
-  console.error("Failed to start server:", error.message);
-  process.exit(1);
-});
+startServer();
